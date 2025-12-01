@@ -1,751 +1,256 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pemasangan</title>
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pemasangan</title>
+<style>
+html{scroll-behavior:auto} /* kita pakai animasi custom sendiri */
 
-  <!-- OCR Engine -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+body{
+  font-family:sans-serif;
+  background:#e5f0ff;
+  margin:0;
+  font-size:14px;
+}
 
-  <style>
-    html { scroll-behavior: auto; }
+.app{
+  max-width:430px;
+  margin:auto;
+  background:#fff;
+  min-height:100vh;
+  padding-bottom:70px;
+}
 
-    body {
-      font-family: sans-serif;
-      background: #e5f0ff;
-      margin: 0;
-      font-size: 14px;
-    }
+.h{
+  background:#1d4ed8;
+  color:#fff;
+  padding:10px;
+  position:sticky;
+  top:0;
+}
 
-    .app {
-      max-width: 430px;
-      margin: auto;
-      background: #fff;
-      min-height: 100vh;
-      padding-bottom: 70px;
-    }
+.s{padding:12px}
 
-    /* HEADER */
-    .h {
-      background: #1d4ed8;
-      color: #fff;
-      padding: 10px;
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
+/* Kartu dengan snap + border */
+.card{
+  background:#f8f9fa;
+  margin:8px 0;
+  padding:10px;
+  border-left:4px solid #d4af37;
+  border:1px solid #ccc;
+  border-radius:12px;
+  scroll-snap-align:start;
+  font-size:14px;
+}
 
-    /* PROGRESS BAR (di bawah header) */
-    #progressBarContainer {
-      width: 100%;
-      height: 6px;
-      background: #dbeafe;
-      display: none;
-    }
+.row{
+  display:grid;
+  grid-template-columns:90px 1fr;
+  font-size:14px;
+  margin:2px 0;
+}
 
-    #progressBar {
-      width: 0%;
-      height: 100%;
-      background: #2563eb;
-      transition: width 0.15s linear;
-    }
+/* Nav bawah */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;display:flex;justify-content:space-around;
+  background:#fff;border-top:1px solid #ddd;padding:6px 0;font-size:14px
+}
 
-    /* CONTENT */
-    .s { padding: 12px; }
+/* Tombol Pencarian Melayang */
+.fab{
+  position:fixed;bottom:90px;right:20px;background:#1d4ed8;color:#fff;
+  width:55px;height:55px;border-radius:50%;display:flex;justify-content:center;
+  align-items:center;font-size:24px;cursor:pointer;z-index:20;
+}
 
-    /* CARD */
-    .card {
-      background: #f8f9fa;
-      margin: 8px 0;
-      padding: 10px;
-      border-left: 4px solid #d4af37;
-      border: 1px solid #ccc;
-      border-radius: 12px;
-      cursor: pointer;
-      scroll-snap-align: start;
-    }
+/* Kotak Pencarian */
+.searchBox{
+  position:fixed;bottom:160px;right:20px;width:240px;background:#fff;
+  border:1px solid #ccc;border-radius:8px;padding:8px;display:none;z-index:20;
+}
+.searchBox input{
+  width:100%;padding:6px 8px;border-radius:6px;border:1px solid #bbb;
+  font-size:14px;
+}
+</style>
+</head><body>
 
-    .row {
-      display: grid;
-      grid-template-columns: 90px 1fr;
-      font-size: 14px;
-      margin: 2px 0;
-    }
-
-    /* NAV BAWAH */
-    .nav {
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 430px;
-      display: flex;
-      justify-content: space-around;
-      background: #fff;
-      border-top: 1px solid #ddd;
-      padding: 6px 0;
-      font-size: 14px;
-    }
-
-    /* FLOATING BUTTON (Search / WhatsApp) */
-    .fab {
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      background: #1d4ed8;
-      color: #fff;
-      width: 55px;
-      height: 55px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 24px;
-      cursor: pointer;
-      z-index: 20;
-      transition: background 0.2s ease;
-    }
-
-    .fab.wa-mode {
-      background: #22c55e; /* hijau WA */
-    }
-
-    /* SEARCH BOX */
-    .searchBox {
-      position: fixed;
-      bottom: 160px;
-      right: 20px;
-      width: 240px;
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 8px;
-      display: none;
-      z-index: 20;
-    }
-
-    .searchBox input {
-      width: 100%;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #bbb;
-      font-size: 14px;
-    }
-
-    /* VIEWER (HALAMAN GAMBAR / FORM WA) */
-    #viewer {
-      display: none;
-      padding: 15px;
-      text-align: center;
-    }
-
-    #viewer img {
-      width: 100%;
-      margin-top: 10px;
-      border-radius: 10px;
-      border: 2px solid #1d4ed8;
-    }
-
-    .wa-form {
-      text-align: left;
-      max-width: 430px;
-      margin: 0 auto;
-    }
-    .wa-form label {
-      display: block;
-      margin-top: 10px;
-      font-weight: 600;
-    }
-    .wa-form input {
-      width: 100%;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #bbb;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-    .wa-form button {
-      margin-top: 16px;
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      background: #22c55e;
-      color: #fff;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-
-<div class="app" id="appMain">
-  <div class="h">
-    PLN ULP Wonosobo<br>
-    <small>VKRN Kejajar</small>
-  </div>
-
-  <div id="progressBarContainer">
-    <div id="progressBar"></div>
-  </div>
-
-  <div class="s">
-    <div id="cards"></div>
-  </div>
+<div class="app">
+  <div class="h">PLN ULP Wonosobo<br><small>VKRN Kejajar</small></div>
+  <div class="s"><div id="cards"></div></div>
 </div>
 
-<div class="nav">
-  <span>🔌 Pemasangan</span>
-  <span>📊 Laporan</span>
-</div>
+<div class="nav"><span>🔌 Pemasangan</span><span>📊 Laporan</span></div>
 
-<!-- Floating Button (Search / WhatsApp) -->
+<!-- Tombol pencarian -->
 <div class="fab" id="fab">🔍</div>
 
-<!-- Search box -->
+<!-- Kotak pencarian -->
 <div class="searchBox" id="sb">
   <input id="cari" placeholder="Cari...">
 </div>
 
-<!-- Viewer for OCR images & WA form -->
-<div id="viewer"></div>
-
 <script>
-/* ============================================================
-   DATA PELANGGAN DARI CSV
-============================================================ */
-let data = [];
+let data=[];
 
-function simpan(){
-  localStorage.setItem("psg2026", JSON.stringify(data));
-}
+function simpan(){localStorage.setItem("psg2026",JSON.stringify(data));}
 function muat(){
-  let s = localStorage.getItem("psg2026");
-  if(s) {
-    try { data = JSON.parse(s); } catch(e) {}
-  }
+ let s=localStorage.getItem("psg2026");
+ if(s) try{data=JSON.parse(s);}catch{}
 }
 muat();
 
+// CSV parser aman
 function parseCSVLine(l){
-  let a = [], c = "", q = false;
-  for(let ch of l){
-    if(ch === '"'){ q = !q; continue; }
-    if(ch === "," && !q){ a.push(c); c = ""; }
-    else c += ch;
-  }
-  a.push(c);
-  return a.map(x => x.trim());
+ let a=[],c="",q=false;
+ for(let ch of l){
+   if(ch=='"'){q=!q;continue;}
+   if(ch==","&&!q){a.push(c);c="";}
+   else c+=ch;
+ }
+ a.push(c);
+ return a.map(x=>x.trim());
 }
 
+// Ambil data CSV dari GitHub
 async function loadData(){
-  let url = "https://raw.githubusercontent.com/zaidhidayat/vkrn_kejajar/main/data/sanxing1";
-  let txt = await fetch(url).then(r=>r.text()).catch(()=>null);
-  if(!txt) { tampil(); return; }
+ let url="https://raw.githubusercontent.com/zaidhidayat/vkrn_kejajar/main/data/sanxing1";
+ let txt=await fetch(url).then(r=>r.text()).catch(()=>null);
 
-  let lines = txt.split(/\r?\n/).filter(x => x.trim());
-  let head = parseCSVLine(lines[0]).map(h => h.toUpperCase());
-  let gi = x => head.indexOf(x) >= 0 ? head.indexOf(x) : -1;
+ if(!txt) return tampil();
 
-  let idxID = gi("IDPEL"),
-      idxN  = gi("NAMA"),
-      idxP  = gi("NAMAPNJ"),
-      idxRT = gi("RT"),
-      idxRW = gi("RW"),
-      idxKEL= gi("NAMA_KELURAHAN"),
-      idxKEC= gi("NAMA_KECAMATAN"),
-      idxM  = gi("NOMOR_METER_KWH");
+ let lines=txt.split(/\r?\n/).filter(x=>x.trim());
+ let head=parseCSVLine(lines[0]).map(h=>h.toUpperCase());
+ let gi=x=>head.indexOf(x)>=0?head.indexOf(x):-1;
 
-  data = [];
+ let idxID =gi("IDPEL"),
+     idxN  =gi("NAMA"),
+     idxP  =gi("NAMAPNJ"),
+     idxRT =gi("RT"),
+     idxRW =gi("RW"),
+     idxKEL=gi("NAMA_KELURAHAN"),
+     idxKEC=gi("NAMA_KECAMATAN"),
+     idxM  =gi("NOMOR_METER_KWH");
 
-  for(let i=1;i<lines.length;i++){
-    let c = parseCSVLine(lines[i]);
-    if(!c[idxID]) continue;
+ data=[];
 
-    let alamat = [
-      c[idxP] || "",
-      c[idxRT] ? "RT " + c[idxRT] : "",
-      c[idxRW] ? "RW " + c[idxRW] : "",
-      c[idxKEL] || "",
-      c[idxKEC] || ""
-    ].filter(x => x).join(", ");
+ for(let i=1;i<lines.length;i++){
+   let c=parseCSVLine(lines[i]);
+   if(!c[idxID]) continue;
 
-    data.push({
-      id    : c[idxID],
-      nama  : c[idxN] || "",
-      alamat: alamat,
-      meter : c[idxM] || ""
-    });
-  }
+   let alamat=[
+     c[idxP]||"", c[idxRT]?"RT "+c[idxRT]:"",
+     c[idxRW]?"RW "+c[idxRW]:"",
+     c[idxKEL]||"", c[idxKEC]||""
+   ].filter(x=>x).join(", ");
 
-  simpan();
-  tampil();
+   data.push({
+     id:c[idxID],
+     nama:c[idxN]||"",
+     alamat,
+     meter:c[idxM]||""
+   });
+ }
+
+ simpan();
+ tampil();
 }
 loadData();
 
-/* ============================================================
-   TAMPILKAN KARTU
-============================================================ */
+// Render kartu
 function tampil(f=""){
-  f = f.toLowerCase();
-  let box = document.getElementById("cards");
-  box.innerHTML = "";
+ f=f.toLowerCase();
+ let box=document.getElementById("cards");
+ box.innerHTML="";
+ data.forEach(x=>{
+   let t=(x.id+" "+x.nama+" "+x.alamat+" "+x.meter).toLowerCase();
+   if(f && !t.includes(f)) return;
 
-  data.forEach(x => {
-    let t = (x.id + " " + x.nama + " " + x.alamat + " " + x.meter).toLowerCase();
-    if(f && !t.includes(f)) return;
-
-    box.innerHTML += `
-      <div class="card" onclick="openImage('${x.id}')">
-        <div class="row"><div>ID Pel</div><div>${x.id}</div></div>
-        <div class="row"><div>Nama</div><div>${x.nama || "-"}</div></div>
-        <div class="row"><div>Alamat</div><div>${x.alamat || "-"}</div></div>
-        <div class="row"><div>Sanxing</div><div>${x.meter || "-"}</div></div>
-      </div>
-    `;
-  });
+   box.innerHTML+=`
+   <div class="card">
+     <div class="row"><div>ID Pel</div><div>${x.id}</div></div>
+     <div class="row"><div>Nama</div><div>${x.nama||"-"}</div></div>
+     <div class="row"><div>Alamat</div><div>${x.alamat||"-"}</div></div>
+     <div class="row"><div>Sanxing</div><div>${x.meter||"-"}</div></div>
+   </div>`;
+ });
+ snapPrepare();
 }
 
-/* ============================================================
-   PROGRESS BAR
-============================================================ */
-function showProgressBar(){
-  document.getElementById("progressBarContainer").style.display = "block";
-  updateProgressBar(0);
-}
-function hideProgressBar(){
-  setTimeout(() => {
-    document.getElementById("progressBarContainer").style.display = "none";
-  }, 300);
-}
-function updateProgressBar(val){
-  document.getElementById("progressBar").style.width = val + "%";
-}
+// Tombol pencarian melayang
+let fab=document.getElementById("fab"),
+    sb=document.getElementById("sb"),
+    cari=document.getElementById("cari"),
+    aktif=false;
 
-/* ============================================================
-   INDEXEDDB SETUP
-============================================================ */
-let db = null;
-
-function dbInit(){
-  return new Promise((resolve, reject) => {
-    let req = indexedDB.open("psg2026_db", 2);
-
-    req.onupgradeneeded = function(e){
-      let db = e.target.result;
-      if(!db.objectStoreNames.contains("images")){
-        db.createObjectStore("images", { keyPath: "name" });
-      }
-      if(!db.objectStoreNames.contains("ocr")){
-        db.createObjectStore("ocr", { keyPath: "name" });
-      }
-    };
-
-    req.onsuccess = e => { db = e.target.result; resolve(); };
-    req.onerror = reject;
-  });
-}
-
-/* images store */
-function saveImage(name, base64){
-  return new Promise(res => {
-    let tx = db.transaction("images", "readwrite");
-    tx.objectStore("images").put({ name, base64 });
-    tx.oncomplete = () => res();
-  });
-}
-
-function getImage(name){
-  return new Promise(res => {
-    let tx = db.transaction("images", "readonly");
-    let rq = tx.objectStore("images").get(name);
-    rq.onsuccess = () => res(rq.result);
-    rq.onerror = () => res(null);
-  });
-}
-
-function getAllImageNames(){
-  return new Promise(res => {
-    let tx = db.transaction("images", "readonly");
-    let rq = tx.objectStore("images").getAllKeys();
-    rq.onsuccess = () => res(rq.result);
-    rq.onerror = () => res([]);
-  });
-}
-
-/* ocr store */
-function saveOCR(name, text){
-  return new Promise(res => {
-    let tx = db.transaction("ocr", "readwrite");
-    tx.objectStore("ocr").put({ name, text });
-    tx.oncomplete = () => res();
-  });
-}
-
-function getOCR(name){
-  return new Promise(res => {
-    let tx = db.transaction("ocr", "readonly");
-    let rq = tx.objectStore("ocr").get(name);
-    rq.onsuccess = () => res(rq.result ? rq.result.text : null);
-    rq.onerror = () => res(null);
-  });
-}
-
-/* download image as base64 */
-async function fetchBase64(url){
-  let blob = await fetch(url).then(r => r.blob());
-  return new Promise(resolve => {
-    let reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
-}
-
-/* batch download images */
-async function downloadImagesInBatches(images){
-  const batchSize = 8;
-  const total = images.length;
-  for(let i=0;i<total;i+=batchSize){
-    const batch = images.slice(i, i+batchSize);
-    await Promise.all(batch.map(async (img, idx) => {
-      let base64 = await fetchBase64(img.download_url);
-      await saveImage(img.name, base64);
-      let progress = Math.round(((i + idx + 1) / total) * 100);
-      updateProgressBar(progress);
-    }));
-  }
-}
-
-/* ============================================================
-   TESSERACT PARALLEL (2 WORKER)
-============================================================ */
-let ocrWorkers = [];
-let ocrReady = false;
-
-async function initOCRWorkers(){
-  if(ocrReady) return;
-  for(let i=0;i<2;i++){
-    let w = Tesseract.createWorker({ logger: m => {} });
-    await w.load();
-    await w.loadLanguage("eng");
-    await w.initialize("eng");
-    ocrWorkers.push(w);
-  }
-  ocrReady = true;
-}
-
-/* ============================================================
-   PRE-INDEX OCR — index semua gambar sekali
-============================================================ */
-async function preIndexOCR(){
-  await dbInit();
-  await initOCRWorkers();
-
-  let files = await getAllImageNames();
-  let total = files.length;
-  if(total === 0) return;
-
-  showProgressBar();
-  updateProgressBar(0);
-
-  for(let i=0;i<total;i++){
-    let fn = files[i];
-
-    // sudah punya index?
-    let cached = await getOCR(fn);
-    if(cached !== null){
-      updateProgressBar(Math.round(((i+1)/total)*100));
-      continue;
-    }
-
-    let img = await getImage(fn);
-    if(!img){
-      updateProgressBar(Math.round(((i+1)/total)*100));
-      continue;
-    }
-
-    let worker = ocrWorkers[i % 2];
-
-    let result = await worker.recognize(img.base64, {
-      tessedit_char_whitelist: "0123456789"
-    });
-
-    let text = result.data.text.replace(/\D+/g, "");
-    await saveOCR(fn, text);
-
-    updateProgressBar(Math.round(((i+1)/total)*100));
-  }
-
-  hideProgressBar();
-}
-
-/* ============================================================
-   LOAD ALL IMAGES + PRE-INDEX OCR
-============================================================ */
-async function loadAllImages(){
-  await dbInit();
-  let existing = await getAllImageNames();
-
-  if(existing.length > 0){
-    // gambar sudah ada → hanya pastikan index OCR lengkap
-    await preIndexOCR();
-    return;
-  }
-
-  // belum ada gambar → download dulu, lalu index
-  showProgressBar();
-
-  let list = await fetch("https://api.github.com/repos/zaidhidayat/vkrn_kejajar/contents/asset")
-                    .then(r=>r.json()).catch(()=>[]);
-
-  let images = list.filter(x => x.name.match(/\.(jpg|jpeg|png)$/i));
-
-  await downloadImagesInBatches(images);
-  hideProgressBar();
-
-  await preIndexOCR();
-}
-
-/* ============================================================
-   OPEN IMAGE (PAKAI INDEX OCR SAJA — TANPA OCR ULANG)
-   + Set mode tombol ke WhatsApp
-============================================================ */
-let currentRecord = null;   // data pelanggan yang sedang aktif
-let fabMode = "search";     // "search" atau "wa"
-
-async function openImage(idpel){
-  document.getElementById("appMain").style.display = "none";
-
-  let viewer = document.getElementById("viewer");
-  viewer.style.display = "block";
-  viewer.innerHTML = `<h3>Mencari gambar untuk ${idpel}...</h3>`;
-
-  // ambil record pelanggan
-  currentRecord = data.find(d => d.id === idpel) || { id:idpel, nama:"", alamat:"", meter:"" };
-
-  await loadAllImages(); // termasuk dbInit & preIndexOCR
-
-  let files = await getAllImageNames();
-  let matches = [];
-
-  for(let fn of files){
-    let text = await getOCR(fn);
-    if(text && text.includes(idpel)){
-      let img = await getImage(fn);
-      if(img) matches.push(img.base64);
-    }
-  }
-
-  if(matches.length > 0){
-    viewer.innerHTML = `
-      <h3>Gambar ditemukan</h3>
-      <img src="${matches[0]}">
-      <br><br><button onclick="backHome()">Kembali</button>
-    `;
-  } else {
-    viewer.innerHTML = `
-      <h3>Tidak ada gambar untuk IDPEL ${idpel}</h3>
-      <button onclick="backHome()">Kembali</button>
-    `;
-  }
-
-  // Ubah tombol fab menjadi mode WhatsApp
-  setFabToWhatsApp();
-}
-
-function backHome(){
-  document.getElementById("viewer").style.display = "none";
-  document.getElementById("appMain").style.display = "block";
-  setFabToSearch();
-}
-
-/* ============================================================
-   FAB MODE: SEARCH / WHATSAPP
-============================================================ */
-const fab = document.getElementById("fab");
-const sb  = document.getElementById("sb");
-const cari= document.getElementById("cari");
-let aktif = false; // untuk search box
-
-function setFabToSearch(){
-  fabMode = "search";
-  fab.textContent = "🔍";
-  fab.classList.remove("wa-mode");
-  sb.style.display = "none";
-  aktif = false;
-}
-
-function setFabToWhatsApp(){
-  fabMode = "wa";
-  fab.textContent = "🟢"; // tombol WA
-  fab.classList.add("wa-mode");
-  sb.style.display = "none";
-  aktif = false;
-}
-
-/* klik FAB */
-fab.onclick = () => {
-  if(fabMode === "search"){
-    // mode pencarian
-    if(!aktif){
-      sb.style.display = "block";
-      fab.textContent  = "✕";
-      aktif = true;
-      cari.focus();
-    } else {
-      cari.value = "";
-      sb.style.display = "none";
-      fab.textContent  = "🔍";
-      aktif = false;
-      tampil("");
-    }
-  } else if(fabMode === "wa"){
-    // mode WhatsApp → tampilkan form laporan
-    openWAForm();
-  }
+fab.onclick=()=>{
+ if(!aktif){
+   sb.style.display="block";
+   fab.textContent="✕";
+   aktif=true;
+   cari.focus();
+ } else {
+   cari.value="";
+   sb.style.display="none";
+   fab.textContent="🔍";
+   aktif=false;
+   tampil("");
+ }
 };
+cari.oninput=()=>tampil(cari.value.toLowerCase());
+cari.onblur=()=>{ if(!cari.value.trim()){ sb.style.display="none"; fab.textContent="🔍"; aktif=false; } };
 
-cari.oninput = () => tampil(cari.value.toLowerCase());
+// ==== Animasi snap lebih halus ====
+let scrollTimer=null;
 
-cari.onblur = () => {
-  if(!cari.value.trim() && fabMode === "search"){
-    sb.style.display = "none";
-    fab.textContent  = "🔍";
-    aktif = false;
+// animasi scroll custom dengan easing halus
+function animateScrollTo(target){
+  let start=window.scrollY;
+  let dist=target-start;
+  let dur=350; // ms
+  if(Math.abs(dist)<5) return; // terlalu dekat, tidak usah animasi
+
+  let startTime=null;
+  function step(ts){
+    if(!startTime) startTime=ts;
+    let p=(ts-startTime)/dur;
+    if(p>1) p=1;
+    // easing in-out (smooth)
+    let ease = p<0.5 ? 2*p*p : -1+(4-2*p)*p;
+    window.scrollTo(0, start + dist*ease);
+    if(p<1) requestAnimationFrame(step);
   }
-};
-
-/* ============================================================
-   FORM WHATSAPP & KIRIM
-============================================================ */
-function openWAForm(){
-  if(!currentRecord){
-    alert("Data pelanggan tidak ditemukan.");
-    return;
-  }
-
-  // kosongkan viewer (tetap di mode viewer)
-  const viewer = document.getElementById("viewer");
-  viewer.style.display = "block";
-  viewer.innerHTML = `
-    <h3>Form Laporan Pemasangan</h3>
-    <div class="wa-form">
-      <label>Tegangan sanxing (Volt)</label>
-      <input id="waVolt" type="number" placeholder="misal 220">
-
-      <label>No WA Pelanggan</label>
-      <input id="waNo" type="tel" placeholder="misal 0812xxxxxxx">
-
-      <p style="margin-top:12px;font-size:12px;color:#555;">
-        Lokasi akan diambil otomatis dari GPS (mohon ijinkan akses lokasi).
-      </p>
-
-      <button onclick="sendWhatsAppReport()">Kirim via WhatsApp</button>
-      <button style="background:#6b7280;margin-top:8px;" onclick="backHome()">Batal</button>
-    </div>
-  `;
+  requestAnimationFrame(step);
 }
 
-function sendWhatsAppReport(){
-  const voltInput = document.getElementById("waVolt");
-  const waInput   = document.getElementById("waNo");
+function snapPrepare(){
+  let cards=[...document.querySelectorAll(".card")];
+  if(!cards.length) return;
 
-  const tegangan  = (voltInput.value || "").trim();
-  const waNumber  = (waInput.value || "").trim();
+  window.onscroll=()=>{
+    clearTimeout(scrollTimer);
+    scrollTimer=setTimeout(()=>{
+      let pos=window.scrollY;
+      let closestY=null;
+      let distMin=Infinity;
+      let offset=55; // kira-kira tinggi header
 
-  if(!tegangan){
-    alert("Isi tegangan sanxing terlebih dahulu.");
-    voltInput.focus();
-    return;
-  }
-
-  if(!waNumber){
-    alert("Isi nomor WA pelanggan terlebih dahulu.");
-    waInput.focus();
-    return;
-  }
-
-  // Ambil lokasi dari geolocation
-  let lokasiText = "Lokasi tidak tersedia";
-
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lng = pos.coords.longitude.toFixed(6);
-        lokasiText = `https://www.google.com/maps?q=${lat},${lng}`;
-        doSendWhatsApp(tegangan, waNumber, lokasiText);
-      },
-      err => {
-        console.log("Gagal ambil lokasi:", err);
-        doSendWhatsApp(tegangan, waNumber, lokasiText);
-      },
-      { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
-    );
-  } else {
-    doSendWhatsApp(tegangan, waNumber, lokasiText);
-  }
-}
-
-function doSendWhatsApp(tegangan, waNumber, lokasiText){
-  const rec = currentRecord || { id:"", nama:"", alamat:"" };
-
-  const msg =
-`*LAPORAN PEMASANGAN*
-*VKRN KWH SANXING*
-
-Nama : ${rec.nama}
-IDPEL : ${rec.id}
-Alamat : ${rec.alamat}
-Tegangan kwh sanxing : ${tegangan} V
-Nomor WA : ${waNumber}
-Lokasi Pemasangan : ${lokasiText}`;
-
-  const url = "https://wa.me/?text=" + encodeURIComponent(msg);
-
-  // buka WhatsApp
-  window.open(url, "_blank");
-
-  // kembali ke halaman awal
-  backHome();
-}
-
-/* ============================================================
-   SNAP SCROLL PERBAIKAN
-============================================================ */
-let scrollTimeout;
-window.addEventListener("scroll", () => {
-  clearTimeout(scrollTimeout);
-  scrollTimeout = setTimeout(() => {
-    let cards = document.querySelectorAll(".card");
-    if(!cards.length) return;
-    let nearest = null;
-    let minDist = Infinity;
-    cards.forEach(card => {
-      let rect = card.getBoundingClientRect();
-      let dist = Math.abs(rect.top - 60); // header + progress
-      if(dist < minDist){
-        minDist = dist;
-        nearest = card;
-      }
-    });
-    if(nearest){
-      window.scrollTo({
-        top: nearest.offsetTop - 55,
-        behavior: "smooth"
+      cards.forEach(c=>{
+        let y=c.getBoundingClientRect().top + window.scrollY - offset;
+        let d=Math.abs(pos - y);
+        if(d<distMin){
+          distMin=d;
+          closestY=y;
+        }
       });
-    }
-  }, 120);
-});
 
-/* ============================================================
-   INIT
-============================================================ */
+      // kalau perbedaan kecil, tidak perlu snap
+      if(closestY!==null && distMin>10){
+        animateScrollTo(closestY);
+      }
+    },220); // tunggu user stop scroll sebentar
+  };
+}
+
 tampil();
 </script>
-
-</body>
-</html>
+</body></html>
